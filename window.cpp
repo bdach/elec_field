@@ -26,7 +26,6 @@ window::~window() {
 }
 
 void window::show_window() {
-
 	bool quit = false;
 	SDL_Event e;
 	while (!quit) {
