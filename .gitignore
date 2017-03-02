@@ -1,0 +1,6 @@
+# Final executable and objects
+main
+*.o
+
+# vim temporary files
+*.swp
