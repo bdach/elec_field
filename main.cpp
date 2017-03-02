@@ -1,5 +1,4 @@
 #include "window.h"
-#include "reader.h"
 
 #include <iostream>
 #include <unistd.h>
@@ -13,10 +12,10 @@ int main(int argc, char **argv) {
 	get_options(argc, argv, file_name, width, height);
 
 	input_reader reader(file_name);
-	reader.read_contents();
+	std::vector<point_charge_t> charges = reader.read_contents();
 
 	window win("Electric field", width, height);
-	win.show_window();
+	win.show_window(charges);
 	return EXIT_SUCCESS;
 }
 

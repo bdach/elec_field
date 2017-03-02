@@ -1,4 +1,3 @@
-#include <iostream>
 #include <stdlib.h>
 #include <string.h>
 #include "reader.h"
@@ -25,7 +24,6 @@ std::vector<point_charge_t> input_reader::read_contents() {
 		token = strtok(nullptr, ",");
 		if (token == nullptr) break;
 		p.charge = atof(token);
-		std::cerr << p.x << "," << p.y << "," << p.charge << std::endl;
 		charges.push_back(p);
 	}
 	return charges;

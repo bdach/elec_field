@@ -1,6 +1,8 @@
 #include "window.h"
 
 window::window(const std::string& name, unsigned int width, unsigned int height) {
+	m_width = width;
+	m_height = height;
 	if (SDL_Init(SDL_INIT_VIDEO) < 0)
 		throw std::runtime_error("Could not initialize the SDL2 subsystem.");
 	m_window = SDL_CreateWindow(
@@ -13,19 +15,34 @@ window::window(const std::string& name, unsigned int width, unsigned int height)
 	);
 	if (nullptr == m_window)
 		throw std::runtime_error("Could not create window.");
-	m_surface = SDL_GetWindowSurface(m_window);
-	if (nullptr == m_surface)
-		throw std::runtime_error("Could not get the surface for the window.");
-	SDL_FillRect(m_surface, nullptr, SDL_MapRGB(m_surface->format, 0xff, 0xff, 0xff));
-	SDL_UpdateWindowSurface(m_window);
+	m_renderer = SDL_CreateRenderer(m_window, -1, SDL_RENDERER_ACCELERATED);
+	if (nullptr == m_renderer)
+		throw std::runtime_error("Could not create renderer.");
+	m_texture = SDL_CreateTexture(m_renderer, PIXEL_FORMAT, SDL_TEXTUREACCESS_STREAMING, m_width, m_height);
+	if (nullptr == m_texture)
+		throw std::runtime_error("Could not create texture.");
 }
 
 window::~window() {
+	SDL_DestroyTexture(m_texture);
+	SDL_DestroyRenderer(m_renderer);
 	SDL_DestroyWindow(m_window);
 	SDL_Quit();
 }
 
-void window::show_window() {
+void window::show_window(std::vector<point_charge_t> charges) {
+	cpu_computation solver;
+	std::vector<uint32_t> result = solver.visualization(
+			charges,
+			m_width,
+			m_height,
+			PIXEL_FORMAT);
+	if (SDL_UpdateTexture(m_texture, nullptr, &result[0], m_width * sizeof(uint32_t)))
+
+		throw std::runtime_error(SDL_GetError());
+	SDL_RenderCopy(m_renderer, m_texture, nullptr, nullptr);
+	SDL_RenderPresent(m_renderer);
+
 	bool quit = false;
 	SDL_Event e;
 	while (!quit) {
