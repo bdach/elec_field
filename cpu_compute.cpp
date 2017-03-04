@@ -1,6 +1,8 @@
 #include "cpu_compute.h"
 #include <cmath>
 
+#define MIN_LOG_VAL -10
+
 std::vector<uint32_t> cpu_computation::visualization(
 		std::vector<point_charge_t>& charges, 
 		unsigned int width,
@@ -28,7 +30,7 @@ double cpu_computation::calculate_intensity(
 		double c_y = m_height * charge.y;
 		double r_squared = (x - c_x) * (x - c_x) + (y - c_y) * (y - c_y);
 		if (r_squared < 1) continue;
-		total_intensity += k * charge.charge / r_squared;
+		total_intensity += k * fabs(charge.charge) / r_squared;
 	}
 	// this is going to be a race in parallel
 	// so far this saves us a constant sequentially
@@ -44,14 +46,31 @@ double cpu_computation::calculate_intensity(
 std::vector<uint32_t> cpu_computation::to_color(std::vector<double>& intensities, Uint32 pixel_format) {
 	SDL_PixelFormat *format = SDL_AllocFormat(pixel_format);
 	std::vector<uint32_t> colors(intensities.size());
-	double max_abs_intensity = fmax(fabs(m_min_intensity), m_max_intensity);
+	m_min_intensity = fmax(log10(m_min_intensity), MIN_LOG_VAL);
+	m_max_intensity = log10(m_max_intensity);
+	double diff = m_max_intensity - m_min_intensity;
 	for (unsigned i = 0; i < intensities.size(); ++i) {
-		double scaled = intensities[i] / max_abs_intensity;
-		if (scaled >= 0.0) {
-			colors[i] = SDL_MapRGB(format, (uint8_t) (scaled * 0xff), 0, 0);
-		} else {
-			colors[i] = SDL_MapRGB(format, 0, 0, (uint8_t) (-scaled * 0xff));
-		}
+		double log = fmax(log10(intensities[i]), MIN_LOG_VAL);
+		double scaled = (log - m_min_intensity) / diff;
+		double hue = (1 - scaled) * 300;
+		colors[i] = hue_to_rgb(hue, format);
 	}
 	return colors;
+}
+
+uint32_t cpu_computation::hue_to_rgb(double hue, SDL_PixelFormat* format) {
+	double h_prim = hue / 60;
+	double f_x = 1 - fabs(fmod(h_prim, 2) - 1);
+	uint8_t x = (uint8_t)(f_x * 0xFF);
+	if (h_prim <= 1)
+		return SDL_MapRGB(format, 0xFF, x, 0);
+	if (h_prim <= 2)
+		return SDL_MapRGB(format, x, 0xFF, 0);
+	if (h_prim <= 3)
+		return SDL_MapRGB(format, 0, 0xFF, x);
+	if (h_prim <= 4)
+		return SDL_MapRGB(format, 0, x, 0xFF);
+	if (h_prim <= 5)
+		return SDL_MapRGB(format, x, 0, 0xFF);
+	return SDL_MapRGB(format, 0xFF, 0, x);
 }
