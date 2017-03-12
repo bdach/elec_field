@@ -1,7 +1,9 @@
 #include "cpu_compute.h"
+#include <algorithm>
 #include <cmath>
 
 #define MIN_LOG_VAL -10
+#define MAX_VAL 1e16
 
 std::vector<uint32_t> cpu_computation::visualization(
 		std::vector<point_charge_t>& charges, 
@@ -10,6 +12,7 @@ std::vector<uint32_t> cpu_computation::visualization(
 		Uint32 pixel_format) {
 	std::vector<double> intensities(width * height);
 	m_min_intensity = m_max_intensity = 0.0;
+	set_scale(charges);
 	m_width = width;
 	m_height = height;
 	for (unsigned y = 0; y < height; ++y) {
@@ -17,7 +20,22 @@ std::vector<uint32_t> cpu_computation::visualization(
 			intensities[y * width + x] = calculate_intensity(charges, x, y);
 		}
 	}
+	m_min_intensity = *std::min_element(intensities.begin(), intensities.end());
+	m_max_intensity = *std::max_element(intensities.begin(), intensities.end());
 	return to_color(intensities, pixel_format);
+}
+
+void cpu_computation::set_scale(std::vector<point_charge_t>& charges) {
+	auto cmp_x = [](const point_charge_t& c1, const point_charge_t& c2) { return c1.x < c2.x; };
+	auto cmp_y = [](const point_charge_t& c1, const point_charge_t& c2) { return c1.y < c2.y; };
+	double x_min = std::min_element(charges.begin(), charges.end(), cmp_x)->x;
+	double x_max = std::max_element(charges.begin(), charges.end(), cmp_x)->x;
+	double y_min = std::min_element(charges.begin(), charges.end(), cmp_y)->y;
+	double y_max = std::max_element(charges.begin(), charges.end(), cmp_y)->y;
+	m_x_min = x_min - (x_max - x_min) * 0.1;
+	m_x_scale = (x_max - x_min) * 1.2;
+	m_y_min = y_min - (y_max - y_min) * 0.1;
+	m_y_scale = (y_max - y_min) * 1.2;
 }
 
 double cpu_computation::calculate_intensity(
@@ -26,19 +44,11 @@ double cpu_computation::calculate_intensity(
 		unsigned int y) {
 	double total_intensity = 0.0;
 	for (auto charge : charges) {
-		double c_x = m_width * charge.x;
-		double c_y = m_height * charge.y;
-		double r_squared = (x - c_x) * (x - c_x) + (y - c_y) * (y - c_y);
-		if (r_squared < 1) continue;
-		total_intensity += k * fabs(charge.charge) / r_squared;
-	}
-	// this is going to be a race in parallel
-	// so far this saves us a constant sequentially
-	if (total_intensity < m_min_intensity) {
-		m_min_intensity = total_intensity;
-	}
-	if (total_intensity > m_max_intensity) {
-		m_max_intensity = total_intensity;
+		double x_scaled = m_x_min + x * m_x_scale / (double)m_width;
+		double y_scaled = m_y_min + y * m_y_scale / (double)m_height;
+		double r_squared = (x_scaled - charge.x) * (x_scaled - charge.x) + (y_scaled - charge.y) * (y_scaled - charge.y);
+		double intensity = k * fabs(charge.charge) / r_squared;
+		if (intensity < MAX_VAL) total_intensity += intensity;
 	}
 	return total_intensity;
 }
