@@ -3,7 +3,7 @@
 #include <cmath>
 
 #define MIN_LOG_VAL -10
-#define MAX_VAL 1e16
+#define MAX_VAL 1e10
 
 std::vector<uint32_t> cpu_computation::visualization(
 		std::vector<point_charge_t>& charges, 
@@ -48,15 +48,13 @@ double cpu_computation::calculate_intensity(
 		double y_scaled = m_y_min + y * m_y_scale / (double)m_height;
 		double dx = charge.x - x_scaled;
 		double dy = charge.y - y_scaled;
-		double r_squared = dx * dx + dy * dy;
-		double intensity = k * charge.charge / r_squared;
-		if (intensity < MAX_VAL) {
-			double r = sqrt(r_squared);
-			intensity_x += intensity * dx / r;
-			intensity_x += intensity * dy / r;
-		}
+		double r = sqrt(dx * dx + dy * dy);
+		if (r == 0) continue;
+		double intensity = k * charge.charge / r;
+		intensity_x += intensity * dx / r;
+		intensity_y += intensity * dy / r;
 	}
-	return sqrt(intensity_x * intensity_x + intensity_y * intensity_y);
+	return fmin(sqrt(intensity_x * intensity_x + intensity_y * intensity_y), MAX_VAL);
 }
 
 std::vector<uint32_t> cpu_computation::to_color(std::vector<double>& intensities, Uint32 pixel_format) {

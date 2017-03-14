@@ -1,5 +1,5 @@
-CXX=g++
-CPPFLAGS=-Wall -Wpedantic -Wextra -std=c++14 -g
+CXX=nvcc
+CPPFLAGS=-arch compute_50 -Xcompiler "-Wall -Wpedantic -Wextra -std=c++14 -g"
 LDLIBS=-lSDL2
 
 main:		main.cpp window.o reader.o cpu_compute.o
