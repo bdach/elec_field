@@ -1,11 +1,9 @@
 #include "gpu_compute.h"
 #include <algorithm>
 #include <cmath>
-#include "cuda_runtime.h"
 
 #define MIN_LOG_VAL -10
 #define MAX_VAL 1e10
-
 
 std::vector<uint32_t> gpu_computation::visualization(
 		std::vector<point_charge_t>& charges, 
@@ -13,50 +11,31 @@ std::vector<uint32_t> gpu_computation::visualization(
 		unsigned int height,
 		Uint32 pixel_format) {
 	std::vector<double> intensities(width * height);
+	bounds_t bounds = set_scale(charges);
+	bounds.width = width;
+	bounds.height = height;
+
+	run_kernel(&charges[0], charges.size(), &bounds, &intensities[0]);
+
 	m_min_intensity = m_max_intensity = 0.0;
-	set_scale(charges);
-	m_width = width;
-	m_height = height;
-	for (unsigned y = 0; y < height; ++y) {
-		for (unsigned x = 0; x < width; ++x) {
-			intensities[y * width + x] = calculate_intensity(charges, x, y);
-		}
-	}
 	m_min_intensity = *std::min_element(intensities.begin(), intensities.end());
 	m_max_intensity = *std::max_element(intensities.begin(), intensities.end());
 	return to_color(intensities, pixel_format);
 }
 
-void gpu_computation::set_scale(std::vector<point_charge_t>& charges) {
+bounds_t gpu_computation::set_scale(std::vector<point_charge_t>& charges) {
+	bounds_t result;
 	auto cmp_x = [](const point_charge_t& c1, const point_charge_t& c2) { return c1.x < c2.x; };
 	auto cmp_y = [](const point_charge_t& c1, const point_charge_t& c2) { return c1.y < c2.y; };
 	double x_min = std::min_element(charges.begin(), charges.end(), cmp_x)->x;
 	double x_max = std::max_element(charges.begin(), charges.end(), cmp_x)->x;
 	double y_min = std::min_element(charges.begin(), charges.end(), cmp_y)->y;
 	double y_max = std::max_element(charges.begin(), charges.end(), cmp_y)->y;
-	m_x_min = x_min - (x_max - x_min) * 0.1;
-	m_x_scale = (x_max - x_min) * 1.2;
-	m_y_min = y_min - (y_max - y_min) * 0.1;
-	m_y_scale = (y_max - y_min) * 1.2;
-}
-
-double gpu_computation::calculate_intensity(
-		std::vector<point_charge_t>& charges,
-		unsigned int x,
-		unsigned int y) {
-	double intensity_x = 0.0, intensity_y = 0.0;
-	for (auto charge : charges) {
-		double x_scaled = m_x_min + x * m_x_scale / (double)m_width;
-		double y_scaled = m_y_min + y * m_y_scale / (double)m_height;
-		double dx = charge.x - x_scaled;
-		double dy = charge.y - y_scaled;
-		double r = sqrt(dx * dx + dy * dy);
-		if (r == 0) continue;
-		double intensity = k * charge.charge / r;
-		intensity_x += intensity * dx / r;
-		intensity_y += intensity * dy / r;
-	}
-	return fmin(sqrt(intensity_x * intensity_x + intensity_y * intensity_y), MAX_VAL);
+	result.x_min = x_min - (x_max - x_min) * 0.1;
+	result.x_scale = (x_max - x_min) * 1.2;
+	result.y_min = y_min - (y_max - y_min) * 0.1;
+	result.y_scale = (y_max - y_min) * 1.2;
+	return result;
 }
 
 std::vector<uint32_t> gpu_computation::to_color(std::vector<double>& intensities, Uint32 pixel_format) {

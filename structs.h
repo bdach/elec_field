@@ -3,8 +3,8 @@ typedef struct bounds {
 	double y_scale;
 	double x_min;
 	double y_min;
-	double width;
-	double height;
+	unsigned width;
+	unsigned height;
 } bounds_t;
 
 typedef struct point_charge {
