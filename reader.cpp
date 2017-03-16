@@ -2,9 +2,13 @@
 #include <string.h>
 #include "reader.h"
 
+#include <exception>
+
 #define BUF_SIZE 64
 
 input_reader::input_reader(std::string file_name) : input_stream(file_name) {
+	if (!input_stream.good())
+		throw std::invalid_argument("File not found");
 }
 
 std::vector<point_charge_t> input_reader::read_contents() {

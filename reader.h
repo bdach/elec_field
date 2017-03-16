@@ -1,11 +1,10 @@
+#ifndef READER_H
+#define READER_H
+
 #include <fstream>
 #include <vector>
 
-typedef struct point_charge {
-	double x;
-	double y;
-	double charge;
-} point_charge_t;
+#include "structs.h"
 
 class input_reader {
 private:
@@ -14,3 +13,5 @@ public:
 	input_reader(std::string file_name);
 	std::vector<point_charge_t> read_contents();
 };
+
+#endif

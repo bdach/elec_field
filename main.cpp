@@ -10,9 +10,14 @@ int main(int argc, char **argv) {
 	unsigned int width = 640, height = 480;
 	const char *file_name = "\0";
 	get_options(argc, argv, file_name, width, height);
-
-	input_reader reader(file_name);
-	std::vector<point_charge_t> charges = reader.read_contents();
+	std::vector<point_charge_t> charges;
+	try {
+		input_reader reader(file_name);
+		charges = reader.read_contents();
+	} catch (std::exception& ex) {
+		std::cerr << ex.what() << std::endl;
+		return EXIT_FAILURE;
+	}
 
 	window win("Electric field", width, height);
 	win.show_window(charges);

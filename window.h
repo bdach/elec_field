@@ -1,4 +1,5 @@
 #include "cpu_compute.h"
+#include "gpu_compute.h"
 
 #include "SDL2/SDL.h"
 #include <string>

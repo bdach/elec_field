@@ -4,3 +4,7 @@ main
 
 # vim temporary files
 *.swp
+
+# VIM PLS
+*~
+*.un~
