@@ -1,5 +1,5 @@
 # Final executable and objects
-main
+elec_field
 *.o
 
 # vim temporary files
