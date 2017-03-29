@@ -24,5 +24,5 @@ private:
 			);
 	void set_scale(std::vector<point_charge_t>& charges);
 	std::vector<uint32_t> to_color(std::vector<double>& intensities, Uint32 pixel_format);
-	uint32_t hue_to_rgb(double hue, SDL_PixelFormat* format);
+	uint32_t hue_to_rgb(double hue);
 };
