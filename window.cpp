@@ -31,7 +31,7 @@ window::~window() {
 }
 
 void window::show_window(std::vector<point_charge_t> charges) {
-	gpu_computation solver;
+	cpu_computation solver;
 	std::vector<uint32_t> result = solver.visualization(
 			charges,
 			m_width,

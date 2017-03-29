@@ -58,7 +58,6 @@ double cpu_computation::calculate_intensity(
 }
 
 std::vector<uint32_t> cpu_computation::to_color(std::vector<double>& intensities, Uint32 pixel_format) {
-	SDL_PixelFormat *format = SDL_AllocFormat(pixel_format);
 	std::vector<uint32_t> colors(intensities.size());
 	m_min_intensity = fmax(log10(m_min_intensity), MIN_LOG_VAL);
 	m_max_intensity = log10(m_max_intensity);
@@ -67,24 +66,18 @@ std::vector<uint32_t> cpu_computation::to_color(std::vector<double>& intensities
 		double log = fmax(log10(intensities[i]), MIN_LOG_VAL);
 		double scaled = (log - m_min_intensity) / diff;
 		double hue = (1 - scaled) * 300;
-		colors[i] = hue_to_rgb(hue, format);
+		colors[i] = hue_to_rgb(hue);
 	}
 	return colors;
 }
 
-uint32_t cpu_computation::hue_to_rgb(double hue, SDL_PixelFormat* format) {
-	double h_prim = hue / 60;
+uint32_t cpu_computation::hue_to_rgb(double hue) {
+	double h_prim = hue / 60.0;
 	double f_x = 1 - fabs(fmod(h_prim, 2) - 1);
 	uint8_t x = (uint8_t)(f_x * 0xFF);
-	if (h_prim <= 1)
-		return SDL_MapRGB(format, 0xFF, x, 0);
-	if (h_prim <= 2)
-		return SDL_MapRGB(format, x, 0xFF, 0);
-	if (h_prim <= 3)
-		return SDL_MapRGB(format, 0, 0xFF, x);
-	if (h_prim <= 4)
-		return SDL_MapRGB(format, 0, x, 0xFF);
-	if (h_prim <= 5)
-		return SDL_MapRGB(format, x, 0, 0xFF);
-	return SDL_MapRGB(format, 0xFF, 0, x);
+	unsigned int rounded_h = (unsigned int) h_prim + 1;
+	uint32_t color = 0;
+	color |= x << ((rounded_h % 3) * 8);
+	color |= 0xff << (8 * (2 - ((rounded_h / 2) % 3)));
+	return color;
 }

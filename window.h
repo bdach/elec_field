@@ -12,7 +12,7 @@ private:
 	SDL_Texture* m_texture;
 
 	unsigned int m_width, m_height;
-	const Uint32 PIXEL_FORMAT = SDL_PIXELFORMAT_RGBA8888;
+	const Uint32 PIXEL_FORMAT = SDL_PIXELFORMAT_ARGB8888;
 public:
 	window(const std::string& name, unsigned int width, unsigned int height);
 	~window();

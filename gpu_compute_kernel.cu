@@ -57,6 +57,40 @@ __global__ void total_intensity(double *g_idata,
 	}
 }
 
+__global__ void get_min_intensity(double *g_idata,
+		double *g_odata)
+{
+	extern __shared__ double sdata[];
+
+	unsigned int tid = threadIdx.x;
+	unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+	sdata[tid] = g_idata[i];
+
+	for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
+		if (tid < s)
+			sdata[tid] = fmin(sdata[tid], sdata[tid + s]);
+		__syncthreads();
+	}
+	if (tid == 0) g_odata[blockIdx.x] = sdata[tid];
+}
+
+__global__ void get_max_intensity(double *g_idata,
+		double *g_odata)
+{
+	extern __shared__ double sdata[];
+
+	unsigned int tid = threadIdx.x;
+	unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+	sdata[tid] = g_idata[i];
+
+	for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
+		if (tid < s)
+			sdata[tid] = fmax(sdata[tid], sdata[tid + s]);
+		__syncthreads();
+	}
+	if (tid == 0) g_odata[blockIdx.x] = sdata[tid];
+}
+
 extern "C" void run_kernel(const point_charge_t *charges,
 		const int charge_count,
 		const bounds_t *bounds,
