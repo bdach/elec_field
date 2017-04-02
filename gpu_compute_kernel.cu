@@ -59,12 +59,14 @@ __global__ void total_intensity(double *g_idata,
 }
 
 __global__ void get_min_intensity(double *g_idata,
-		double *g_odata)
+		double *g_odata,
+		int n)
 {
 	extern __shared__ double sdata[];
 
 	unsigned int tid = threadIdx.x;
 	unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+	if (i >= n) return;
 	sdata[tid] = g_idata[i];
 
 	for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
@@ -76,12 +78,14 @@ __global__ void get_min_intensity(double *g_idata,
 }
 
 __global__ void get_max_intensity(double *g_idata,
-		double *g_odata)
+		double *g_odata,
+		int n)
 {
 	extern __shared__ double sdata[];
 
 	unsigned int tid = threadIdx.x;
 	unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+	if (i >= n) return;
 	sdata[tid] = g_idata[i];
 
 	for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
@@ -95,12 +99,17 @@ __global__ void get_max_intensity(double *g_idata,
 __global__ void intensity_to_color(double *g_idata,
 		uint32_t *g_odata,
 		const double min,
-		const double max)
+		const double max,
+		int n)
 {
 	unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+	if (i >= n) return;
 
 	double diff = max - min;
-	double log = log10(g_idata[i]);
+	double intensity = g_idata[i];
+	intensity = fmax(intensity, MIN_INTENSITY);
+	intensity = fmin(intensity, MAX_INTENSITY);
+	double log = log10(intensity);
 	double scaled = (log - min) / diff;
 	double hue = (1 - scaled) * 300;
 	double h_prim = hue / 60.0;
@@ -145,7 +154,7 @@ extern "C" void run_kernel(const point_charge_t *charges,
 	add_intensities<<< component_intensity_grid, threads, smem >>>(d_result_vec, d_result_vec);
 	getLastCudaError("Intensity reduction failed");
 
-	int block_count = bounds->width * bounds->height / THREAD_COUNT;
+	int block_count = bounds->width * bounds->height / THREAD_COUNT + 1;
 	dim3 max_thread_grid(block_count, 1, 1);
 	total_intensity<<< max_thread_grid, THREAD_COUNT >>>(d_result_vec, d_result_vec, bounds->width * bounds->height);
 	getLastCudaError("Total intensity calculation failed");
@@ -155,22 +164,22 @@ extern "C" void run_kernel(const point_charge_t *charges,
 	checkCudaErrors(cudaMalloc((void**)&d_minmax_temp_buf, sizeof(double) * block_count));
 
 	smem = sizeof(double) * THREAD_COUNT;
-	get_min_intensity<<< max_thread_grid, THREAD_COUNT, smem >>>(d_result_vec, d_minmax_temp_buf);
+	get_min_intensity<<< max_thread_grid, THREAD_COUNT, smem >>>(d_result_vec, d_minmax_temp_buf, bounds->width * bounds->height);
 	getLastCudaError("Minimum: first iteration failed");
-	get_min_intensity<<< 1, THREAD_COUNT, smem >>>(d_minmax_temp_buf, d_minmax_temp_buf);
+	get_min_intensity<<< 1, THREAD_COUNT, smem >>>(d_minmax_temp_buf, d_minmax_temp_buf, THREAD_COUNT);
 	getLastCudaError("Minimum: second iteration failed");
 	checkCudaErrors(cudaMemcpy(&min, d_minmax_temp_buf, sizeof(double), cudaMemcpyDeviceToHost));
 
-	get_max_intensity<<< max_thread_grid, THREAD_COUNT, smem >>>(d_result_vec, d_minmax_temp_buf);
+	get_max_intensity<<< max_thread_grid, THREAD_COUNT, smem >>>(d_result_vec, d_minmax_temp_buf, bounds->width * bounds->height);
 	getLastCudaError("Maximum: first iteration failed");
-	get_max_intensity<<< 1, THREAD_COUNT, smem >>>(d_minmax_temp_buf, d_minmax_temp_buf);
+	get_max_intensity<<< 1, THREAD_COUNT, smem >>>(d_minmax_temp_buf, d_minmax_temp_buf, THREAD_COUNT);
 	getLastCudaError("Maximum: second iteration failed");
 	checkCudaErrors(cudaMemcpy(&max, d_minmax_temp_buf, sizeof(double), cudaMemcpyDeviceToHost));
 
 	min = log10(fmax(min, MIN_INTENSITY));
 	max = log10(fmin(max, MAX_INTENSITY));
 
-	intensity_to_color<<< max_thread_grid, THREAD_COUNT >>>(d_result_vec, (uint32_t*)d_result_vec, min, max);
+	intensity_to_color<<< max_thread_grid, THREAD_COUNT >>>(d_result_vec, (uint32_t*)d_result_vec, min, max, bounds->width * bounds->height);
 	getLastCudaError("Conversion to color failed");
 
 	checkCudaErrors(cudaMemcpy(result, (uint32_t*)d_result_vec, reduced_size, cudaMemcpyDeviceToHost));
