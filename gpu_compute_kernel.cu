@@ -1,4 +1,4 @@
-#include "structs.h"
+#include "compute.h"
 #include "math.h"
 
 #include "cuda_runtime.h"

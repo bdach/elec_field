@@ -1,9 +1,5 @@
 #include <cstdint>
-#include <vector>
-#include "structs.h"
-
-#include <SDL2/SDL_pixels.h>
-#include <SDL2/SDL.h>
+#include "compute.h"
 
 extern "C" void run_kernel(const point_charge_t *charges,
 		const int charge_count,

@@ -4,7 +4,7 @@
 #include <fstream>
 #include <vector>
 
-#include "structs.h"
+#include "compute.h"
 
 class input_reader {
 private:

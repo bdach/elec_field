@@ -1,9 +1,6 @@
 #include <cstdint>
 #include <vector>
-#include "structs.h"
-
-#include <SDL2/SDL_pixels.h>
-#include <SDL2/SDL.h>
+#include "compute.h"
 
 class cpu_computation {
 public:

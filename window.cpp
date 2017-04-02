@@ -30,12 +30,7 @@ window::~window() {
 	SDL_Quit();
 }
 
-void window::show_window(std::vector<point_charge_t> charges) {
-	gpu_computation solver;
-	std::vector<uint32_t> result = solver.visualization(
-			charges,
-			m_width,
-			m_height);
+void window::show_window(std::vector<uint32_t> result) {
 	if (SDL_UpdateTexture(m_texture, nullptr, &result[0], m_width * sizeof(uint32_t)))
 		throw std::runtime_error(SDL_GetError());
 

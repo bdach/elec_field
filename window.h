@@ -19,6 +19,6 @@ public:
 	window(const window& window) = delete;
 	window& operator=(const window& window) = delete;
 
-	void show_window(std::vector<point_charge_t> charges);
+	void show_window(std::vector<uint32_t> charges);
 };
 

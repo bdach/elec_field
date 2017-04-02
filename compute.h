@@ -1,5 +1,8 @@
-#ifndef STRUCTS_H
-#define STRUCTS_H
+#ifndef COMPUTE_H
+#define COMPUTE_H
+
+#include "stdint.h"
+#include <vector>
 
 typedef struct bounds {
 	double x_scale;
@@ -20,5 +23,4 @@ typedef struct intensity {
 	double x;
 	double y;
 } intensity_t;
-
 #endif

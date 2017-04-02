@@ -53,7 +53,7 @@ double cpu_computation::calculate_intensity(
 		intensity_x += intensity * dx / r;
 		intensity_y += intensity * dy / r;
 	}
-	return sqrt(intensity_x * intensity_x + intensity_y * intensity_y);
+	return fmax(sqrt(intensity_x * intensity_x + intensity_y * intensity_y), 1e-10);
 }
 
 std::vector<uint32_t> cpu_computation::to_color(std::vector<double>& intensities) {
