@@ -8,8 +8,7 @@
 std::vector<uint32_t> gpu_computation::visualization(
 		std::vector<point_charge_t>& charges, 
 		unsigned int width,
-		unsigned int height,
-		Uint32 pixel_format) {
+		unsigned int height) {
 	std::vector<uint32_t> intensities(width * height);
 	bounds_t bounds = set_scale(charges);
 	bounds.width = width;

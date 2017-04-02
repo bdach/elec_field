@@ -1,3 +1,6 @@
+#ifndef STRUCTS_H
+#define STRUCTS_H
+
 typedef struct bounds {
 	double x_scale;
 	double y_scale;
@@ -17,3 +20,5 @@ typedef struct intensity {
 	double x;
 	double y;
 } intensity_t;
+
+#endif

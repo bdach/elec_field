@@ -1,5 +1,6 @@
 #include <cstdint>
-#include "reader.h"
+#include <vector>
+#include "structs.h"
 
 #include <SDL2/SDL_pixels.h>
 #include <SDL2/SDL.h>
@@ -14,15 +15,11 @@ public:
 	std::vector<uint32_t> visualization(
 			std::vector<point_charge_t>& charges, 
 			unsigned int width, 
-			unsigned int height,
-			Uint32 pixel_format);
+			unsigned int height);
 private:
-	double m_min_intensity, m_max_intensity;
-
 	double calculate_intensity(
 			std::vector<point_charge_t>& charges,
 			unsigned int x,
-			unsigned int y
-			);
+			unsigned int y);
 	bounds_t set_scale(std::vector<point_charge_t>& charges);
 };

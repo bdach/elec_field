@@ -3,13 +3,12 @@
 #include <cmath>
 
 #define MIN_LOG_VAL -10
-#define MAX_VAL 1e10
+#define MAX_LOG_VAL 10
 
 std::vector<uint32_t> cpu_computation::visualization(
 		std::vector<point_charge_t>& charges, 
 		unsigned int width,
-		unsigned int height,
-		Uint32 pixel_format) {
+		unsigned int height) {
 	std::vector<double> intensities(width * height);
 	m_min_intensity = m_max_intensity = 0.0;
 	set_scale(charges);
@@ -22,7 +21,7 @@ std::vector<uint32_t> cpu_computation::visualization(
 	}
 	m_min_intensity = *std::min_element(intensities.begin(), intensities.end());
 	m_max_intensity = *std::max_element(intensities.begin(), intensities.end());
-	return to_color(intensities, pixel_format);
+	return to_color(intensities);
 }
 
 void cpu_computation::set_scale(std::vector<point_charge_t>& charges) {
@@ -54,13 +53,13 @@ double cpu_computation::calculate_intensity(
 		intensity_x += intensity * dx / r;
 		intensity_y += intensity * dy / r;
 	}
-	return fmin(sqrt(intensity_x * intensity_x + intensity_y * intensity_y), MAX_VAL);
+	return sqrt(intensity_x * intensity_x + intensity_y * intensity_y);
 }
 
-std::vector<uint32_t> cpu_computation::to_color(std::vector<double>& intensities, Uint32 pixel_format) {
+std::vector<uint32_t> cpu_computation::to_color(std::vector<double>& intensities) {
 	std::vector<uint32_t> colors(intensities.size());
 	m_min_intensity = fmax(log10(m_min_intensity), MIN_LOG_VAL);
-	m_max_intensity = log10(m_max_intensity);
+	m_max_intensity = fmin(log10(m_max_intensity), MAX_LOG_VAL);
 	double diff = m_max_intensity - m_min_intensity;
 	for (unsigned i = 0; i < intensities.size(); ++i) {
 		double log = fmax(log10(intensities[i]), MIN_LOG_VAL);

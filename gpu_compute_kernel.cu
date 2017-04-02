@@ -168,12 +168,12 @@ extern "C" void run_kernel(const point_charge_t *charges,
 	checkCudaErrors(cudaMemcpy(&max, d_minmax_temp_buf, sizeof(double), cudaMemcpyDeviceToHost));
 
 	min = log10(fmax(min, MIN_INTENSITY));
-	min = log10(fmin(max, MAX_INTENSITY));
+	max = log10(fmin(max, MAX_INTENSITY));
+
 	intensity_to_color<<< max_thread_grid, THREAD_COUNT >>>(d_result_vec, (uint32_t*)d_result_vec, min, max);
 	getLastCudaError("Conversion to color failed");
 
 	checkCudaErrors(cudaMemcpy(result, (uint32_t*)d_result_vec, reduced_size, cudaMemcpyDeviceToHost));
-
 
 	checkCudaErrors(cudaFree(d_charges));
 	checkCudaErrors(cudaFree(d_bounds));

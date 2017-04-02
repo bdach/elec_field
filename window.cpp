@@ -35,8 +35,7 @@ void window::show_window(std::vector<point_charge_t> charges) {
 	std::vector<uint32_t> result = solver.visualization(
 			charges,
 			m_width,
-			m_height,
-			PIXEL_FORMAT);
+			m_height);
 	if (SDL_UpdateTexture(m_texture, nullptr, &result[0], m_width * sizeof(uint32_t)))
 		throw std::runtime_error(SDL_GetError());
 

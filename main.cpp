@@ -1,4 +1,5 @@
 #include "window.h"
+#include "reader.h"
 
 #include <iostream>
 #include <unistd.h>

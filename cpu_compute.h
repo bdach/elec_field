@@ -1,5 +1,6 @@
 #include <cstdint>
-#include "reader.h"
+#include <vector>
+#include "structs.h"
 
 #include <SDL2/SDL_pixels.h>
 #include <SDL2/SDL.h>
@@ -9,8 +10,7 @@ public:
 	std::vector<uint32_t> visualization(
 			std::vector<point_charge_t>& charges, 
 			unsigned int width, 
-			unsigned int height,
-			Uint32 pixel_format);
+			unsigned int height);
 private:
 	const double k = 8.99e-9; // Coulomb's constant
 	double m_min_intensity, m_max_intensity;
@@ -20,9 +20,8 @@ private:
 	double calculate_intensity(
 			std::vector<point_charge_t>& charges,
 			unsigned int x,
-			unsigned int y
-			);
+			unsigned int y);
 	void set_scale(std::vector<point_charge_t>& charges);
-	std::vector<uint32_t> to_color(std::vector<double>& intensities, Uint32 pixel_format);
+	std::vector<uint32_t> to_color(std::vector<double>& intensities);
 	uint32_t hue_to_rgb(double hue);
 };
