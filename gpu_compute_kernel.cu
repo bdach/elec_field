@@ -37,7 +37,7 @@ __global__ void add_intensities(double *g_idata,
 	unsigned int tid = threadIdx.x;
 	unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
 	sdata[tid] = g_idata[i];
-
+	__syncthreads();
 	for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
 		if (tid < s)
 			sdata[tid] += sdata[tid + s];
@@ -68,7 +68,7 @@ __global__ void get_min_intensity(double *g_idata,
 	unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
 	if (i >= n) return;
 	sdata[tid] = g_idata[i];
-
+	__syncthreads();
 	for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
 		if (tid < s)
 			sdata[tid] = fmin(sdata[tid], sdata[tid + s]);
@@ -87,7 +87,7 @@ __global__ void get_max_intensity(double *g_idata,
 	unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
 	if (i >= n) return;
 	sdata[tid] = g_idata[i];
-
+	__syncthreads();
 	for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
 		if (tid < s)
 			sdata[tid] = fmax(sdata[tid], sdata[tid + s]);

@@ -48,7 +48,6 @@ double cpu_computation::calculate_intensity(
 		double dx = charge.x - x_scaled;
 		double dy = charge.y - y_scaled;
 		double r = sqrt(dx * dx + dy * dy);
-		if (r == 0) continue;
 		double intensity = k * charge.charge / r;
 		intensity_x += intensity * dx / r;
 		intensity_y += intensity * dy / r;
@@ -60,6 +59,7 @@ std::vector<uint32_t> cpu_computation::to_color(std::vector<double>& intensities
 	std::vector<uint32_t> colors(intensities.size());
 	m_min_intensity = fmax(log10(m_min_intensity), MIN_LOG_VAL);
 	m_max_intensity = fmin(log10(m_max_intensity), MAX_LOG_VAL);
+	printf("%lf %lf", m_min_intensity, m_max_intensity);
 	double diff = m_max_intensity - m_min_intensity;
 	for (unsigned i = 0; i < intensities.size(); ++i) {
 		double log = fmax(log10(intensities[i]), MIN_LOG_VAL);
