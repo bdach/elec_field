@@ -54,6 +54,7 @@ __global__ void total_intensity(double *g_idata,
 	if (i < n) {
 		double x = g_idata[2 * i];
 		double y = g_idata[2 * i + 1];
+		__syncthreads();
 		g_odata[i] = fmax(fmin(sqrt(x * x + y * y), MAX_INTENSITY), MIN_INTENSITY);
 	}
 }
@@ -72,8 +73,8 @@ __global__ void get_min_intensity(double *g_idata,
 	for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
 		if (tid < s)
 			sdata[tid] = fmin(sdata[tid], sdata[tid + s]);
-		__syncthreads();
 	}
+	__syncthreads();
 	if (tid == 0) g_odata[blockIdx.x] = sdata[tid];
 }
 
@@ -130,7 +131,6 @@ extern "C" void run_kernel(const point_charge_t *charges,
 	const unsigned long result_size = 2 * sizeof(double) * charge_count * bounds->width * bounds->height;
 	const unsigned long reduced_size = sizeof(uint32_t) * bounds->width * bounds->height;
 
-
 	point_charge_t *d_charges;
 	checkCudaErrors(cudaMalloc((void **)&d_charges, charges_size));
 	checkCudaErrors(cudaMemcpy(d_charges, charges, charges_size, cudaMemcpyHostToDevice));
@@ -165,13 +165,13 @@ extern "C" void run_kernel(const point_charge_t *charges,
 	smem = sizeof(double) * THREAD_COUNT;
 	get_min_intensity<<< max_thread_grid, THREAD_COUNT, smem >>>(d_result_vec, d_minmax_temp_buf, bounds->width * bounds->height);
 	getLastCudaError("Minimum: first iteration failed");
-	get_min_intensity<<< 1, THREAD_COUNT, smem >>>(d_minmax_temp_buf, d_minmax_temp_buf, THREAD_COUNT);
+	get_min_intensity<<< 1, THREAD_COUNT, smem >>>(d_minmax_temp_buf, d_minmax_temp_buf, block_count);
 	getLastCudaError("Minimum: second iteration failed");
 	checkCudaErrors(cudaMemcpy(&min, d_minmax_temp_buf, sizeof(double), cudaMemcpyDeviceToHost));
 
 	get_max_intensity<<< max_thread_grid, THREAD_COUNT, smem >>>(d_result_vec, d_minmax_temp_buf, bounds->width * bounds->height);
 	getLastCudaError("Maximum: first iteration failed");
-	get_max_intensity<<< 1, THREAD_COUNT, smem >>>(d_minmax_temp_buf, d_minmax_temp_buf, THREAD_COUNT);
+	get_max_intensity<<< 1, THREAD_COUNT, smem >>>(d_minmax_temp_buf, d_minmax_temp_buf, block_count);
 	getLastCudaError("Maximum: second iteration failed");
 	checkCudaErrors(cudaMemcpy(&max, d_minmax_temp_buf, sizeof(double), cudaMemcpyDeviceToHost));
 
