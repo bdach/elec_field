@@ -116,8 +116,7 @@ __global__ void intensity_to_color(double *g_idata,
 	double f_x = 1 - fabs(fmod(h_prim, 2.0) - 1);
 	uint8_t x = (uint8_t)(f_x * 0xFF);
 	unsigned int rounded_h = (unsigned int) h_prim + 1;
-	g_odata[i] = 0;
-	g_odata[i] |= x << ((rounded_h % 3) * 8);
+	g_odata[i] = x << ((rounded_h % 3) * 8);
 	g_odata[i] |= 0xff << (8 * (2 - ((rounded_h / 2) % 3)));
 }
 
@@ -176,8 +175,10 @@ extern "C" void run_kernel(const point_charge_t *charges,
 	getLastCudaError("Maximum: second iteration failed");
 	checkCudaErrors(cudaMemcpy(&max, d_minmax_temp_buf, sizeof(double), cudaMemcpyDeviceToHost));
 
+	printf("%lf %lf", min, max);
 	min = log10(fmax(min, MIN_INTENSITY));
 	max = log10(fmin(max, MAX_INTENSITY));
+	printf("%lf %lf", min, max);
 
 	intensity_to_color<<< max_thread_grid, THREAD_COUNT >>>(d_result_vec, (uint32_t*)d_result_vec, min, max, bounds->width * bounds->height);
 	getLastCudaError("Conversion to color failed");

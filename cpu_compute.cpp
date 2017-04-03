@@ -57,6 +57,7 @@ double cpu_computation::calculate_intensity(
 
 std::vector<uint32_t> cpu_computation::to_color(std::vector<double>& intensities) {
 	std::vector<uint32_t> colors(intensities.size());
+	printf("%lf %lf", m_min_intensity, m_max_intensity);
 	m_min_intensity = fmax(log10(m_min_intensity), MIN_LOG_VAL);
 	m_max_intensity = fmin(log10(m_max_intensity), MAX_LOG_VAL);
 	printf("%lf %lf", m_min_intensity, m_max_intensity);
