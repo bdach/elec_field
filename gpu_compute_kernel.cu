@@ -3,6 +3,8 @@
 
 #include "cuda_runtime.h"
 #include "helper_cuda.h"
+#include <thrust/extrema.h>
+#include <thrust/device_ptr.h>
 
 #define MIN_INTENSITY 1e-10f
 #define MAX_INTENSITY 1e10f
@@ -16,7 +18,7 @@ extern "C" void run_kernel(const point_charge_t *charges,
 __global__ void calculate_intensity(const point_charge_t* charges,
 		const bounds_t* bounds,
 		float* result) {
-	const float k = 8.99e-9; // Coulomb's constant
+	const float k = 8.99e-9f; // Coulomb's constant
 	point_charge_t charge = charges[threadIdx.x];
 	float x_scaled = bounds->x_min + blockIdx.x * bounds->x_scale / (double)gridDim.x;
 	float y_scaled = bounds->y_min + blockIdx.y * bounds->y_scale / (double)gridDim.y;
@@ -40,11 +42,19 @@ __global__ void add_intensities(float *g_idata,
 	unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
 	sdata[tid] = g_idata[i];
 	__syncthreads();
-	for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
+	for (unsigned int s = blockDim.x / 2; s > 32; s >>= 1) {
 		if (tid < s)
 			sdata[tid] += sdata[tid + s];
 		__syncthreads();
 	}
+	// manually unrolled last warp
+	unsigned blocksize = blockDim.x;
+	if ((blocksize >= 64) && (tid < 32)) sdata[tid] += sdata[tid + 32];
+	if ((blocksize >= 32) && (tid < 16)) sdata[tid] += sdata[tid + 16];
+	if ((blocksize >= 16) && (tid <  8)) sdata[tid] += sdata[tid +  8];
+	if ((blocksize >=  8) && (tid <  4)) sdata[tid] += sdata[tid +  4];
+	if ((blocksize >=  4) && (tid <  2)) sdata[tid] += sdata[tid +  2];
+	if ((blocksize >=  2) && (tid <  1)) sdata[tid] += sdata[tid +  1];
 	if (tid == 0) g_odata[blockIdx.x] = sdata[tid];
 }
 
@@ -59,44 +69,6 @@ __global__ void total_intensity(float *g_idata,
 		__syncthreads();
 		g_odata[i] = fmax(fmin(sqrt(x * x + y * y), MAX_INTENSITY), MIN_INTENSITY);
 	}
-}
-
-__global__ void get_min_intensity(float *g_idata,
-		float *g_odata,
-		int n)
-{
-	extern __shared__ float sdata[];
-
-	unsigned int tid = threadIdx.x;
-	unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
-	if (i >= n) return;
-	sdata[tid] = g_idata[i];
-	__syncthreads();
-	for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
-		if (tid < s)
-			sdata[tid] = fmin(sdata[tid], sdata[tid + s]);
-	}
-	__syncthreads();
-	if (tid == 0) g_odata[blockIdx.x] = sdata[tid];
-}
-
-__global__ void get_max_intensity(float *g_idata,
-		float *g_odata,
-		int n)
-{
-	extern __shared__ float sdata[];
-
-	unsigned int tid = threadIdx.x;
-	unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
-	if (i >= n) return;
-	sdata[tid] = g_idata[i];
-	__syncthreads();
-	for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
-		if (tid < s)
-			sdata[tid] = fmax(sdata[tid], sdata[tid + s]);
-		__syncthreads();
-	}
-	if (tid == 0) g_odata[blockIdx.x] = sdata[tid];
 }
 
 __global__ void intensity_to_color(float *g_idata,
@@ -129,10 +101,11 @@ extern "C" void run_kernel(const point_charge_t *charges,
 		const bounds_t *bounds,
 		uint32_t *result)
 {
+	const unsigned long pixel_count = bounds->width * bounds->height;
 	const unsigned int charges_size = charge_count * sizeof(point_charge_t);
 	const unsigned int bounds_size = sizeof(bounds_t);
-	const unsigned long result_size = 2 * sizeof(float) * charge_count * bounds->width * bounds->height;
-	const unsigned long reduced_size = sizeof(uint32_t) * bounds->width * bounds->height;
+	const unsigned long result_size = 2 * sizeof(float) * charge_count * pixel_count;
+	const unsigned long reduced_size = sizeof(uint32_t) * pixel_count;
 
 	point_charge_t *d_charges;
 	checkCudaErrors(cudaMalloc((void **)&d_charges, charges_size));
@@ -156,34 +129,20 @@ extern "C" void run_kernel(const point_charge_t *charges,
 	add_intensities<<< component_intensity_grid, threads, smem >>>(d_result_vec, d_result_vec);
 	getLastCudaError("Intensity reduction failed");
 
-	int block_count = bounds->width * bounds->height / THREAD_COUNT + 1;
+	int block_count = pixel_count / THREAD_COUNT + 1;
 	dim3 max_thread_grid(block_count, 1, 1);
-	total_intensity<<< max_thread_grid, THREAD_COUNT >>>(d_result_vec, d_result_vec, bounds->width * bounds->height);
+	total_intensity<<< max_thread_grid, THREAD_COUNT >>>(d_result_vec, d_result_vec, pixel_count);
 	getLastCudaError("Total intensity calculation failed");
 
-	float min, max;
-	float *d_minmax_temp_buf;
-	checkCudaErrors(cudaMalloc((void**)&d_minmax_temp_buf, sizeof(float) * block_count));
+	thrust::device_ptr<float> intensities_ptr(d_result_vec);
 
-	smem = sizeof(float) * THREAD_COUNT;
-	get_min_intensity<<< max_thread_grid, THREAD_COUNT, smem >>>(d_result_vec, d_minmax_temp_buf, bounds->width * bounds->height);
-	getLastCudaError("Minimum: first iteration failed");
-	get_min_intensity<<< 1, THREAD_COUNT, smem >>>(d_minmax_temp_buf, d_minmax_temp_buf, block_count);
-	getLastCudaError("Minimum: second iteration failed");
-	checkCudaErrors(cudaMemcpy(&min, d_minmax_temp_buf, sizeof(float), cudaMemcpyDeviceToHost));
+	float min = *thrust::min_element(intensities_ptr, intensities_ptr + pixel_count);
+	float max = *thrust::max_element(intensities_ptr, intensities_ptr + pixel_count);
 
-	get_max_intensity<<< max_thread_grid, THREAD_COUNT, smem >>>(d_result_vec, d_minmax_temp_buf, bounds->width * bounds->height);
-	getLastCudaError("Maximum: first iteration failed");
-	get_max_intensity<<< 1, THREAD_COUNT, smem >>>(d_minmax_temp_buf, d_minmax_temp_buf, block_count);
-	getLastCudaError("Maximum: second iteration failed");
-	checkCudaErrors(cudaMemcpy(&max, d_minmax_temp_buf, sizeof(float), cudaMemcpyDeviceToHost));
-
-	printf("%lf %lf", min, max);
 	min = log10(fmax(min, MIN_INTENSITY));
 	max = log10(fmin(max, MAX_INTENSITY));
-	printf("%lf %lf", min, max);
 
-	intensity_to_color<<< max_thread_grid, THREAD_COUNT >>>(d_result_vec, (uint32_t*)d_result_vec, min, max, bounds->width * bounds->height);
+	intensity_to_color<<< max_thread_grid, THREAD_COUNT >>>(d_result_vec, (uint32_t*)d_result_vec, min, max, pixel_count);
 	getLastCudaError("Conversion to color failed");
 
 	checkCudaErrors(cudaMemcpy(result, (uint32_t*)d_result_vec, reduced_size, cudaMemcpyDeviceToHost));
@@ -191,6 +150,5 @@ extern "C" void run_kernel(const point_charge_t *charges,
 	checkCudaErrors(cudaFree(d_charges));
 	checkCudaErrors(cudaFree(d_bounds));
 	checkCudaErrors(cudaFree(d_result_vec));
-	checkCudaErrors(cudaFree(d_minmax_temp_buf));
 }
 
