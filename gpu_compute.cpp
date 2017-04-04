@@ -22,10 +22,10 @@ bounds_t gpu_computation::set_scale(std::vector<point_charge_t>& charges) {
 	bounds_t result;
 	auto cmp_x = [](const point_charge_t& c1, const point_charge_t& c2) { return c1.x < c2.x; };
 	auto cmp_y = [](const point_charge_t& c1, const point_charge_t& c2) { return c1.y < c2.y; };
-	double x_min = std::min_element(charges.begin(), charges.end(), cmp_x)->x;
-	double x_max = std::max_element(charges.begin(), charges.end(), cmp_x)->x;
-	double y_min = std::min_element(charges.begin(), charges.end(), cmp_y)->y;
-	double y_max = std::max_element(charges.begin(), charges.end(), cmp_y)->y;
+	float x_min = std::min_element(charges.begin(), charges.end(), cmp_x)->x;
+	float x_max = std::max_element(charges.begin(), charges.end(), cmp_x)->x;
+	float y_min = std::min_element(charges.begin(), charges.end(), cmp_y)->y;
+	float y_max = std::max_element(charges.begin(), charges.end(), cmp_y)->y;
 	result.x_min = x_min - (x_max - x_min) * 0.1;
 	result.x_scale = (x_max - x_min) * 1.2;
 	result.y_min = y_min - (y_max - y_min) * 0.1;

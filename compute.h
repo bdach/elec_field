@@ -4,23 +4,24 @@
 #include "stdint.h"
 #include <vector>
 
+// floats, struct of arrays
 typedef struct bounds {
-	double x_scale;
-	double y_scale;
-	double x_min;
-	double y_min;
+	float x_scale;
+	float y_scale;
+	float x_min;
+	float y_min;
 	unsigned width;
 	unsigned height;
 } bounds_t;
 
 typedef struct point_charge {
-	double x;
-	double y;
-	double charge;
+	float x;
+	float y;
+	float charge;
 } point_charge_t;
 
 typedef struct intensity {
-	double x;
-	double y;
+	float x;
+	float y;
 } intensity_t;
 #endif

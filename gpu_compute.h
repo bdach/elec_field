@@ -13,9 +13,5 @@ public:
 			unsigned int width, 
 			unsigned int height);
 private:
-	double calculate_intensity(
-			std::vector<point_charge_t>& charges,
-			unsigned int x,
-			unsigned int y);
 	bounds_t set_scale(std::vector<point_charge_t>& charges);
 };

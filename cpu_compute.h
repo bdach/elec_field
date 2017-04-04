@@ -9,16 +9,16 @@ public:
 			unsigned int width, 
 			unsigned int height);
 private:
-	const double k = 8.99e-9; // Coulomb's constant
-	double m_min_intensity, m_max_intensity;
+	const float k = 8.99e-9f; // Coulomb's constant
+	float m_min_intensity, m_max_intensity;
 	unsigned int m_width, m_height;
-	double m_x_min, m_y_min, m_x_scale, m_y_scale;
+	float m_x_min, m_y_min, m_x_scale, m_y_scale;
 
-	double calculate_intensity(
+	float calculate_intensity(
 			std::vector<point_charge_t>& charges,
 			unsigned int x,
 			unsigned int y);
 	void set_scale(std::vector<point_charge_t>& charges);
-	std::vector<uint32_t> to_color(std::vector<double>& intensities);
-	uint32_t hue_to_rgb(double hue);
+	std::vector<uint32_t> to_color(std::vector<float>& intensities);
+	uint32_t hue_to_rgb(float hue);
 };
