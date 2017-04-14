@@ -2,13 +2,22 @@
 #include "math.h"
 
 #include "cuda_runtime.h"
-#include "helper_cuda.h"
 #include <thrust/extrema.h>
 #include <thrust/device_ptr.h>
 
 #define MIN_INTENSITY 1e-10f
 #define MAX_INTENSITY 1e10f
 #define THREAD_COUNT 1024
+
+inline void on_error(cudaError_t errcode, const char *file, int line) {
+	if (errcode != cudaSuccess) {
+		fprintf(stderr, "CUDA error: %s (%s:%d)\n", cudaGetErrorString(errcode), file, line);
+		exit(EXIT_FAILURE);
+	}
+}
+
+#define checkCudaErrors(ret) on_error((ret), __FILE__, __LINE__)
+#define getLastCudaError() on_error(cudaGetLastError(), __FILE__, __LINE__)
 
 extern "C" void run_kernel(const point_charge_t *charges,
 		const int charge_count,
@@ -122,17 +131,17 @@ extern "C" void run_kernel(const point_charge_t *charges,
 	dim3 threads(charge_count, 1, 1);
 
 	calculate_intensity<<< charge_intensity_grid, threads >>>(d_charges, d_bounds, d_result_vec);
-	getLastCudaError("Intensity calculation failed");
+	getLastCudaError();
 
 	dim3 component_intensity_grid(2 * bounds->width * bounds->height, 1, 1);
 	unsigned int smem = sizeof(float) * charge_count;
 	add_intensities<<< component_intensity_grid, threads, smem >>>(d_result_vec, d_result_vec);
-	getLastCudaError("Intensity reduction failed");
+	getLastCudaError();
 
 	int block_count = pixel_count / THREAD_COUNT + 1;
 	dim3 max_thread_grid(block_count, 1, 1);
 	total_intensity<<< max_thread_grid, THREAD_COUNT >>>(d_result_vec, d_result_vec, pixel_count);
-	getLastCudaError("Total intensity calculation failed");
+	getLastCudaError();
 
 	thrust::device_ptr<float> intensities_ptr(d_result_vec);
 
@@ -143,7 +152,7 @@ extern "C" void run_kernel(const point_charge_t *charges,
 	max = log10(fmin(max, MAX_INTENSITY));
 
 	intensity_to_color<<< max_thread_grid, THREAD_COUNT >>>(d_result_vec, (uint32_t*)d_result_vec, min, max, pixel_count);
-	getLastCudaError("Conversion to color failed");
+	getLastCudaError();
 
 	checkCudaErrors(cudaMemcpy(result, (uint32_t*)d_result_vec, reduced_size, cudaMemcpyDeviceToHost));
 

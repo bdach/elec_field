@@ -256,7 +256,7 @@ elec_field: cpu_compute.o gpu_compute.o gpu_compute_kernel.o main.o reader.o win
 	$(EXEC) $(NVCC) $(ALL_LDFLAGS) $(GENCODE_FLAGS) -o $@ $+ $(LIBRARIES)
 
 run: build
-	$(EXEC) ./cppIntegration
+	$(EXEC) ./elec_field
 
 clean:
 	rm -f cppIntegration cpu_compute.o gpu_compute.o gpu_compute_kernel.o main.o reader.o window.o elec_field
