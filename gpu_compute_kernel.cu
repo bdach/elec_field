@@ -19,14 +19,16 @@ inline void on_error(cudaError_t errcode, const char *file, int line) {
 #define checkCudaErrors(ret) on_error((ret), __FILE__, __LINE__)
 #define getLastCudaError() on_error(cudaGetLastError(), __FILE__, __LINE__)
 
-extern "C" void run_kernel(const point_charge_t *charges,
+extern "C" void run_kernel(
+		const point_charge_t *charges,
 		const int charge_count,
 		const bounds_t *bounds,
 		uint32_t *result);
 
-__global__ void calculate_intensity(const point_charge_t* charges,
-		const bounds_t* bounds,
-		float* result) {
+__global__ void calculate_intensity(
+		const point_charge_t *charges,
+		const bounds_t *bounds,
+		float *result) {
 	const float k = 8.99e-9f; // Coulomb's constant
 	point_charge_t charge = charges[threadIdx.x];
 	float x_scaled = bounds->x_min + blockIdx.x * bounds->x_scale / (double)gridDim.x;
@@ -35,13 +37,37 @@ __global__ void calculate_intensity(const point_charge_t* charges,
 	float dy = charge.y - y_scaled;
 	float r = sqrt(dx * dx + dy * dy);
 	float intensity = k * charge.charge / r;
-	// check coalesced writes here
 	unsigned long offset = blockDim.x * (gridDim.x * blockIdx.y + blockIdx.x);
 	result[2 * offset + threadIdx.x] = intensity * dx / r;
 	result[2 * offset + blockDim.x + threadIdx.x] = intensity * dy / r;
 }
 
-// thrust
+__global__ void calculate_intensity_slow(
+		const point_charge_t *charges,
+		const bounds_t *bounds,
+		const unsigned charge_count,
+		float *result,
+		int n) {
+	const float k = 8.99e-9f; // Coulomb's constant
+	unsigned int pixel_idx = blockIdx.x * blockDim.x + threadIdx.x;
+	if (pixel_idx >= n) return;
+	unsigned int x = pixel_idx % bounds->width;
+	unsigned int y = pixel_idx / bounds->width;
+	result[2 * pixel_idx] = 0;
+	result[2 * pixel_idx + 1] = 0;
+	for (unsigned i = 0; i < charge_count; ++i) {
+		point_charge_t charge = charges[i];
+		float x_scaled = bounds->x_min + x * bounds->x_scale / (double)bounds->width;
+		float y_scaled = bounds->y_min + y * bounds->y_scale / (double)bounds->height;
+		float dx = charge.x - x_scaled;
+		float dy = charge.y - y_scaled;
+		float r = sqrt(dx * dx + dy * dy);
+		float intensity = k * charge.charge / r;
+		result[2 * pixel_idx] += intensity * dx / r;
+		result[2 * pixel_idx + 1] += intensity * dy / r;
+	}
+}
+
 __global__ void add_intensities(float *g_idata, 
 		float *g_odata)
 {
@@ -100,9 +126,7 @@ __global__ void intensity_to_color(float *g_idata,
 	float f_x = 1 - fabs(fmod(h_prim, 2.0f) - 1);
 	uint8_t x = (uint8_t)(f_x * 0xFF);
 	unsigned int rounded_h = (unsigned int) h_prim + 1;
-	// one-liner here
-	g_odata[i] = x << ((rounded_h % 3) * 8);
-	g_odata[i] |= 0xff << (8 * (2 - ((rounded_h / 2) % 3)));
+	g_odata[i] = x << ((rounded_h % 3) * 8) | 0xff << (8 * (2 - ((rounded_h / 2) % 3)));
 }
 
 extern "C" void run_kernel(const point_charge_t *charges,
@@ -125,21 +149,31 @@ extern "C" void run_kernel(const point_charge_t *charges,
 	checkCudaErrors(cudaMemcpy(d_bounds, bounds, bounds_size, cudaMemcpyHostToDevice));
 
 	float *d_result_vec;
-	checkCudaErrors(cudaMalloc((void**)&d_result_vec, result_size));
-
-	dim3 charge_intensity_grid(bounds->width, bounds->height, 1);
-	dim3 threads(charge_count, 1, 1);
-
-	calculate_intensity<<< charge_intensity_grid, threads >>>(d_charges, d_bounds, d_result_vec);
-	getLastCudaError();
-
-	dim3 component_intensity_grid(2 * bounds->width * bounds->height, 1, 1);
-	unsigned int smem = sizeof(float) * charge_count;
-	add_intensities<<< component_intensity_grid, threads, smem >>>(d_result_vec, d_result_vec);
-	getLastCudaError();
-
 	int block_count = pixel_count / THREAD_COUNT + 1;
 	dim3 max_thread_grid(block_count, 1, 1);
+
+	size_t free, total;
+	checkCudaErrors(cudaMemGetInfo(&free, &total));
+
+	if (free >= result_size) {
+		checkCudaErrors(cudaMalloc((void**)&d_result_vec, result_size));
+
+		dim3 charge_intensity_grid(bounds->width, bounds->height, 1);
+		dim3 threads(charge_count, 1, 1);
+		calculate_intensity<<< charge_intensity_grid, threads >>>(d_charges, d_bounds, d_result_vec);
+		getLastCudaError();
+
+		dim3 component_intensity_grid(2 * bounds->width * bounds->height, 1, 1);
+		unsigned int smem = sizeof(float) * charge_count;
+		add_intensities<<< component_intensity_grid, threads, smem >>>(d_result_vec, d_result_vec);
+		getLastCudaError();
+	} else {
+		fprintf(stderr, "resorting to slow\n");
+		checkCudaErrors(cudaMalloc((void**)&d_result_vec, 2 * reduced_size));
+		calculate_intensity_slow<<< max_thread_grid, THREAD_COUNT >>>(d_charges, d_bounds, charge_count, d_result_vec, pixel_count);
+		getLastCudaError();
+	}
+
 	total_intensity<<< max_thread_grid, THREAD_COUNT >>>(d_result_vec, d_result_vec, pixel_count);
 	getLastCudaError();
 
