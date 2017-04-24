@@ -1,0 +1,149 @@
+<!-- Creator     : groff version 1.22.3 -->
+<!-- CreationDate: Mon Apr 24 08:57:18 2017 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>ELEC_FIELD</title>
+
+</head>
+<body>
+
+<h1 align="center">ELEC_FIELD</h1>
+
+<a href="#NAME">NAME</a><br>
+<a href="#SYNOPSIS">SYNOPSIS</a><br>
+<a href="#DESCRIPTION">DESCRIPTION</a><br>
+<a href="#OPTIONS">OPTIONS</a><br>
+<a href="#ACKNOWLEDGEMENTS">ACKNOWLEDGEMENTS</a><br>
+
+<hr>
+
+
+<h2>NAME
+<a name="NAME"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">elec_field
+&minus; display a visualization of an electric field</p>
+
+<h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>elec_field
+&minus;f</b> <i>FILE</i> [<b>&minus;gcs</b>]
+[<b>&minus;w</b> <i>WIDTH</i>] [<b>&minus;h</b>
+<i>HEIGHT</i>]</p>
+
+<h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>elec_field</b>
+takes an input file containing 2D coordinates and
+intensities of point electric charges, and displays them on
+the screen. The hue of each pixel represents the intensity
+of the field, ranging from red (highest intensity) to pink
+(lowest).</p>
+
+<p style="margin-left:11%; margin-top: 1em">The input files
+consist of lines with three comma-delimited numbers. The
+lines are of the format <b>x,y,intensity</b> Lines starting
+with a <b>#</b> character are ignored and treated as
+comments.</p>
+
+<h2>OPTIONS
+<a name="OPTIONS"></a>
+</h2>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>&minus;f&nbsp;</b><i>FILE</i></p>
+
+<p style="margin-left:22%;">Contains the name of the file
+to load for intensity info.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;w&nbsp;</b><i>WIDTH</i></p>
+
+<p style="margin-left:22%;">Sets the width of the generated
+visualization in pixels.</p>
+
+
+<p style="margin-left:11%;"><b>&minus;h&nbsp;</b><i>HEIGHT</i></p>
+
+<p style="margin-left:22%;">Sets the height of the
+generated visualization in pixels.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p><b>&minus;g</b></p></td>
+<td width="8%"></td>
+<td width="78%">
+
+
+<p>Uses the GPU to render the visualization. This utilizes
+the CUDA toolkit and therefore support is only available for
+NVIDIA GPUs. Enabled by default.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p><b>&minus;c</b></p></td>
+<td width="8%"></td>
+<td width="78%">
+
+
+<p>Uses the CPU to render the visualization. Warning: With
+high output resolutions and big input files this will be
+VERY slow.</p></td></tr>
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="3%">
+
+
+<p><b>&minus;s</b></p></td>
+<td width="8%"></td>
+<td width="78%">
+
+
+<p>Silent mode. Can be used to suppress showing the output
+window. The program exits immediately upon generating the
+visualization. Can be used in conjunction with the
+<b>time</b>(1) utility to compare performance.</p></td></tr>
+</table>
+
+<h2>ACKNOWLEDGEMENTS
+<a name="ACKNOWLEDGEMENTS"></a>
+</h2>
+
+
+<p style="margin-left:11%; margin-top: 1em">The makefile
+for the project was adapted from the NVIDIA CUDA
+samples.</p>
+
+<p style="margin-left:11%; margin-top: 1em">The GPU
+compuation uses Thrust for fast reduction.</p>
+<hr>
+</body>
+</html>

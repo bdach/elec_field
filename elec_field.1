@@ -1,0 +1,53 @@
+.TH ELEC_FIELD
+.SH NAME
+elec_field \- display a visualization of an electric field
+.SH SYNOPSIS
+.B elec_field
+\fB\-f\fR \fIFILE\fR
+[\fB\-gcs\fR]
+[\fB\-w\fR \fIWIDTH\fR]
+[\fB\-h\fR \fIHEIGHT\fR]
+.SH DESCRIPTION
+.B elec_field
+takes an input file containing 2D coordinates and intensities of point
+electric charges, and displays them on the screen. The hue of each
+pixel represents the intensity of the field, ranging from red (highest
+intensity) to pink (lowest).
+.PP
+The input files consist of lines with three comma-delimited numbers.
+The lines are of the format
+.B x,y,intensity
+Lines starting with a \fB#\fR character are ignored and treated
+as comments.
+.SH OPTIONS
+.TP
+.BR \-f\ \fIFILE\fR
+Contains the name of the file to load for intensity info.
+.TP
+.BR \-w\ \fIWIDTH\fR
+Sets the width of the generated visualization in pixels.
+.TP
+.BR \-h\ \fIHEIGHT\fR
+Sets the height of the generated visualization in pixels.
+.TP
+.BR \-g
+Uses the GPU to render the visualization.
+This utilizes the CUDA toolkit and therefore support is only
+available for NVIDIA GPUs.
+Enabled by default.
+.TP
+.BR \-c
+Uses the CPU to render the visualization.
+Warning: With high output resolutions and big input files
+this will be VERY slow.
+.TP
+.BR \-s
+Silent mode.
+Can be used to suppress showing the output window.
+The program exits immediately upon generating the visualization.
+Can be used in conjunction with the \fBtime\fR(1) utility
+to compare performance.
+.SH ACKNOWLEDGEMENTS
+The makefile for the project was adapted from the NVIDIA CUDA samples.
+.PP
+The GPU compuation uses Thrust for fast reduction.

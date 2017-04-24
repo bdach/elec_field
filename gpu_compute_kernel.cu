@@ -168,7 +168,6 @@ extern "C" void run_kernel(const point_charge_t *charges,
 		add_intensities<<< component_intensity_grid, threads, smem >>>(d_result_vec, d_result_vec);
 		getLastCudaError();
 	} else {
-		fprintf(stderr, "resorting to slow\n");
 		checkCudaErrors(cudaMalloc((void**)&d_result_vec, 2 * reduced_size));
 		calculate_intensity_slow<<< max_thread_grid, THREAD_COUNT >>>(d_charges, d_bounds, charge_count, d_result_vec, pixel_count);
 		getLastCudaError();

@@ -1,0 +1,46 @@
+ELEC_FIELD()                                                      ELEC_FIELD()
+
+NAME
+       elec_field - display a visualization of an electric field
+
+SYNOPSIS
+       elec_field -f FILE [-gcs] [-w WIDTH] [-h HEIGHT]
+
+DESCRIPTION
+       elec_field  takes  an input file containing 2D coordinates and intensi‐
+       ties of point electric charges, and displays them on  the  screen.  The
+       hue  of  each pixel represents the intensity of the field, ranging from
+       red (highest intensity) to pink (lowest).
+
+       The input files consist of lines with  three  comma-delimited  numbers.
+       The lines are of the format x,y,intensity Lines starting with a # char‐
+       acter are ignored and treated as comments.
+
+OPTIONS
+       -f FILE
+              Contains the name of the file to load for intensity info.
+
+       -w WIDTH
+              Sets the width of the generated visualization in pixels.
+
+       -h HEIGHT
+              Sets the height of the generated visualization in pixels.
+
+       -g     Uses the GPU to render the  visualization.   This  utilizes  the
+              CUDA  toolkit and therefore support is only available for NVIDIA
+              GPUs.  Enabled by default.
+
+       -c     Uses the CPU to render the visualization.   Warning:  With  high
+              output resolutions and big input files this will be VERY slow.
+
+       -s     Silent mode.  Can be used to suppress showing the output window.
+              The program exits immediately upon generating the visualization.
+              Can  be  used in conjunction with the time(1) utility to compare
+              performance.
+
+ACKNOWLEDGEMENTS
+       The makefile for the project was adapted from the NVIDIA CUDA samples.
+
+       The GPU compuation uses Thrust for fast reduction.
+
+                                                                  ELEC_FIELD()
